@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grupo Malibu — Operacional</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  /* ============================================================
+     CONFIGURAÇÃO: substitua pelos seus dados do Supabase
+     ============================================================ */
+
+  :root {
+    --primary: #1a1a1a;
+    --surface: #ffffff;
+    --surface2: #f5f5f3;
+    --surface3: #ececea;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --text: #1a1a1a;
+    --text2: #6b6b68;
+    --text3: #9c9a92;
+    --success: #1D9E75;
+    --success-bg: #E1F5EE;
+    --warning: #BA7517;
+    --warning-bg: #FAEEDA;
+    --danger: #A32D2D;
+    --danger-bg: #FCEBEB;
+    --info: #185FA5;
+    --info-bg: #E6F1FB;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #f0eeea;
+      --surface: #1c1c1a;
+      --surface2: #242422;
+      --surface3: #2c2c2a;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --text: #f0eeea;
+      --text2: #a0a09a;
+      --text3: #6b6b68;
+      --success: #5DCAA5;
+      --success-bg: #04342C;
+      --warning: #EF9F27;
+      --warning-bg: #412402;
+      --danger: #F09595;
+      --danger-bg: #501313;
+      --info: #85B7EB;
+      --info-bg: #042C53;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--surface2); color: var(--text); font-size: 14px; }
+
+  /* Auth */
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .auth-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: 100%; max-width: 380px; }
+  .auth-logo { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 0.375rem; }
+  .auth-sub { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+
+  /* Layout */
+  .app { display: none; min-height: 100vh; }
+  .app.visible { display: block; }
+  .topbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .topbar-brand { font-size: 15px; font-weight: 600; color: var(--text); }
+  .topbar-user { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
+  .nav-tabs { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0 1.25rem; display: flex; gap: 4px; overflow-x: auto; }
+  .nav-tab { padding: 10px 14px; font-size: 13px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+  .nav-tab.active { color: var(--text); border-bottom-color: var(--primary); font-weight: 500; }
+  .content { padding: 1.25rem; max-width: 860px; margin: 0 auto; }
+
+  /* Forms */
+  .section { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .sec-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; padding-bottom: .625rem; border-bottom: 0.5px solid var(--border); }
+  .row { display: grid; gap: 10px; margin-bottom: 10px; }
+  .r2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .r3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .r4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  input, select, textarea {
+    width: 100%; padding: 8px 10px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    font-size: 13px; color: var(--text);
+    background: var(--surface2);
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--info); background: var(--surface); }
+  input[type=number] { text-align: right; }
+
+  /* Buttons */
+  .btn { padding: 8px 16px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 13px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+  .btn:hover { opacity: .8; }
+  .btn-primary { background: var(--primary); color: var(--surface); border-color: transparent; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-block { width: 100%; }
+  .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+
+  /* Tags */
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .tag { padding: 5px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); font-size: 12px; cursor: pointer; background: var(--surface2); color: var(--text2); transition: .1s; }
+  .tag.on-d { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+  .tag.on-w { background: var(--warning-bg); color: var(--warning); border-color: transparent; }
+  .tag.on-i { background: var(--info-bg); color: var(--info); border-color: transparent; }
+  .tag.on-s { background: var(--success-bg); color: var(--success); border-color: transparent; }
+
+  /* Badges */
+  .badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: var(--radius); font-weight: 500; }
+  .bs { background: var(--success-bg); color: var(--success); }
+  .bd { background: var(--danger-bg); color: var(--danger); }
+  .bw { background: var(--warning-bg); color: var(--warning); }
+  .bi { background: var(--info-bg); color: var(--info); }
+  .bg { background: var(--surface3); color: var(--text2); }
+
+  /* Metric cards */
+  .mc-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .mc-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .mc { background: var(--surface2); border-radius: var(--radius); padding: .875rem 1rem; }
+  .mc-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .mc-value { font-size: 20px; font-weight: 600; color: var(--text); }
+  .mc-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .mc.alert .mc-label, .mc.alert .mc-value { color: var(--danger); }
+  .mc.alert { background: var(--danger-bg); }
+  .mc.warn .mc-label, .mc.warn .mc-value { color: var(--warning); }
+  .mc.warn { background: var(--warning-bg); }
+  .mc.ok .mc-label, .mc.ok .mc-value { color: var(--success); }
+  .mc.ok { background: var(--success-bg); }
+
+  /* Misc */
+  .total-row { background: var(--surface2); border-radius: var(--radius); padding: .625rem 1rem; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .total-label { font-size: 12px; color: var(--text2); }
+  .total-value { font-size: 16px; font-weight: 600; color: var(--text); }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: .875rem 0; }
+  .cblock { border: 0.5px solid var(--border); border-radius: var(--radius); padding: .75rem; margin-bottom: .625rem; }
+  .cblock-title { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: .5rem; }
+  .search-wrap { position: relative; margin-bottom: .75rem; }
+  .search-wrap input { padding-left: 32px; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; opacity: .4; pointer-events: none; }
+  .fc-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: .75rem 1rem; margin-bottom: .5rem; cursor: pointer; }
+  .fc-card:hover { border-color: var(--border2); }
+  .fc-card.sel { border: 1.5px solid var(--info); background: var(--info-bg); }
+  .av { width: 32px; height: 32px; border-radius: 50%; background: var(--info-bg); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--info); flex-shrink: 0; }
+  .flex-row { display: flex; align-items: center; gap: 10px; }
+  .alert-item { display: flex; align-items: flex-start; gap: 10px; padding: .625rem 0; border-bottom: 0.5px solid var(--border); }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .dot-d { background: var(--danger); }
+  .dot-w { background: var(--warning); }
+  .dot-s { background: var(--success); }
+  .unit-row { display: flex; align-items: center; justify-content: space-between; padding: .625rem 0; border-bottom: 0.5px solid var(--border); }
+  .unit-row:last-child { border-bottom: none; }
+  .bar-wrap { flex: 1; margin: 0 12px; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--info); }
+  .confirm-ok { background: var(--success-bg); border: 0.5px solid var(--success); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .screen { display: none; } .screen.active { display: block; }
+  .loading { text-align: center; padding: 2rem; color: var(--text2); font-size: 13px; }
+  .step-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 1.25rem; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); }
+  .dot.active { background: var(--primary); }
+  .step-nav { display: flex; gap: 8px; margin-top: 1rem; }
+  .nivel-g { display: flex; gap: 6px; margin-top: 4px; }
+  .nv { flex: 1; padding: 6px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 12px; cursor: pointer; text-align: center; background: var(--surface2); color: var(--text2); font-family: inherit; }
+  .nv.bom.sel { background: var(--success-bg); color: var(--success); border-color: transparent; }
+  .nv.atencao.sel { background: var(--warning-bg); color: var(--warning); border-color: transparent; }
+  .nv.critico.sel { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+  .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--primary); color: var(--surface); padding: .75rem 1.5rem; border-radius: var(--radius-lg); font-size: 13px; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .mc-grid { grid-template-columns: repeat(2, 1fr); }
+    .r3, .r4 { grid-template-columns: repeat(2, 1fr); }
+    .content { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     CONFIGURAÇÃO SUPABASE
+     Substitua SUPABASE_URL e SUPABASE_ANON_KEY pelos seus dados
+     Encontre em: Supabase Dashboard > Settings > API
+     ============================================================ -->
+<script>
+const SUPABASE_URL = 'https://qjbbcwlmcaszmtwskrma.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYmJjd2xtY2Fzem10d3Nrcm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTY2MzQsImV4cCI6MjA5MTg5MjYzNH0.i3JK_I-itXlEvp-uBrYX1BDFJLZhUAxaqqArRcqCWkw';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================ AUTH ============================================================ -->
+<div class="auth-wrap" id="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">Grupo Malibu</div>
+    <div class="auth-sub">Plataforma operacional</div>
+    <div id="auth-login">
+      <div class="field" style="margin-bottom:.75rem">
+        <label>E-mail</label>
+        <input type="email" id="auth-email" placeholder="seu@email.com">
+      </div>
+      <div class="field" style="margin-bottom:1rem">
+        <label>Senha</label>
+        <input type="password" id="auth-password" placeholder="Senha">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="login()">Entrar</button>
+      <div id="auth-error" style="font-size:12px;color:var(--danger);margin-top:.75rem;text-align:center;display:none"></div>
+      <div style="text-align:center;margin-top:1rem">
+        <span style="font-size:12px;color:var(--text2);cursor:pointer" onclick="toggleForgot()">Esqueci minha senha</span>
+      </div>
+    </div>
+    <div id="auth-forgot" style="display:none">
+      <div class="field" style="margin-bottom:.75rem">
+        <label>E-mail para recuperação</label>
+        <input type="email" id="auth-forgot-email" placeholder="seu@email.com">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="resetPassword()">Enviar link de recuperação</button>
+      <div style="text-align:center;margin-top:1rem">
+        <span style="font-size:12px;color:var(--text2);cursor:pointer" onclick="toggleForgot()">← Voltar ao login</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ APP ============================================================ -->
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div class="topbar-brand">Grupo Malibu</div>
+    <div class="topbar-user">
+      <span id="user-info"></span>
+      <button class="btn btn-sm" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs" id="nav-tabs">
+    <button class="nav-tab active" onclick="goTab('relatorio',this)">Relatório diário</button>
+    <button class="nav-tab" onclick="goTab('freelancers',this)">Freelancers</button>
+    <button class="nav-tab" id="tab-dashboard" onclick="goTab('dashboard',this)">Dashboard</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ========== RELATÓRIO DIÁRIO ========== -->
+    <div class="screen active" id="screen-relatorio">
+      <div class="step-dots">
+        <div class="dot active" id="dot-0"></div>
+        <div class="dot" id="dot-1"></div>
+        <div class="dot" id="dot-2"></div>
+        <div class="dot" id="dot-3"></div>
+        <div class="dot" id="dot-4"></div>
+        <div class="dot" id="dot-5"></div>
+      </div>
+
+      <!-- Etapa 0: Identificação -->
+      <div id="step-0">
+        <div class="section">
+          <div class="sec-title">Identificação</div>
+          <div class="row r3">
+            <div class="field"><label>Unidade</label><select id="r-unidade"><option value="">Selecionar...</option></select></div>
+            <div class="field"><label>Data</label><input type="date" id="r-data"></div>
+            <div class="field"><label>Cargo</label><select id="r-cargo"><option value="">—</option><option>Gerente</option><option>Caixa</option><option>Sub-gerente</option><option>Operador</option></select></div>
+          </div>
+          <div class="row r2">
+            <div class="field"><label>Nome de quem preenche</label><input type="text" id="r-nome" placeholder="Nome"></div>
+            <div class="field"><label>Nível geral da operação</label>
+              <div class="nivel-g">
+                <button class="nv bom" onclick="selNivel(this,'bom')">Bom</button>
+                <button class="nv atencao" onclick="selNivel(this,'atencao')">Atenção</button>
+                <button class="nv critico" onclick="selNivel(this,'critico')">Crítico</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav"><button class="btn btn-primary btn-block" onclick="goStep(1)">Próximo: Faturamento →</button></div>
+      </div>
+
+      <!-- Etapa 1: Faturamento -->
+      <div id="step-1" style="display:none">
+        <div class="section">
+          <div class="sec-title">Faturamento por canal</div>
+          <div id="fat-canais-form"></div>
+          <div class="total-row"><span class="total-label">Total do dia</span><span class="total-value" id="total-fat">R$ 0</span></div>
+        </div>
+        <div class="step-nav"><button class="btn btn-sm" onclick="goStep(0)">← Voltar</button><button class="btn btn-primary" style="flex:1" onclick="goStep(2)">Próximo: Cancelamentos →</button></div>
+      </div>
+
+      <!-- Etapa 2: Cancelamentos + Cortesias -->
+      <div id="step-2" style="display:none">
+        <div class="section">
+          <div class="sec-title">Cancelamentos por canal</div>
+          <div id="canc-form"></div>
+          <div class="total-row"><span class="total-label">Total cancelamentos</span><span class="total-value" id="total-canc">R$ 0</span></div>
+          <div class="field" style="margin-top:.75rem"><label>Motivos</label>
+            <div class="tag-row" id="tags-canc">
+              <span class="tag" onclick="togTag(this,'on-d')">Erro de preparo</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Falta de produto</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Demora</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Erro de pedido</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Falha delivery</span>
+              <span class="tag" onclick="togTag(this,'on-i')">Solicitação cliente</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Falha sistema</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Outro</span>
+            </div>
+          </div>
+          <div class="field" style="margin-top:.625rem"><label>Observações</label><textarea rows="2" id="canc-obs" placeholder="Descreva se necessário..."></textarea></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">Cortesias por canal</div>
+          <div id="cort-form"></div>
+          <div class="total-row"><span class="total-label">Total cortesias</span><span class="total-value" id="total-cort">R$ 0</span></div>
+          <div class="field" style="margin-top:.75rem"><label>Motivos</label>
+            <div class="tag-row" id="tags-cort">
+              <span class="tag" onclick="togTag(this,'on-d')">Reclamação qualidade</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Erro de preparo</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Demora excessiva</span>
+              <span class="tag" onclick="togTag(this,'on-i')">Fidelização</span>
+              <span class="tag" onclick="togTag(this,'on-i')">Cortesia gerencial</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Sem justificativa</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Outro</span>
+            </div>
+          </div>
+          <div class="field" style="margin-top:.625rem"><label>Observações</label><textarea rows="2" id="cort-obs" placeholder="Descreva se necessário..."></textarea></div>
+        </div>
+        <div class="step-nav"><button class="btn btn-sm" onclick="goStep(1)">← Voltar</button><button class="btn btn-primary" style="flex:1" onclick="goStep(3)">Próximo: Equipe →</button></div>
+      </div>
+
+      <!-- Etapa 3: Equipe + Freelancers -->
+      <div id="step-3" style="display:none">
+        <div class="section">
+          <div class="sec-title">Equipe</div>
+          <div class="row r4">
+            <div class="field"><label>Faltas</label><input type="number" id="eq-faltas" placeholder="0" min="0"></div>
+            <div class="field"><label>Atrasos</label><input type="number" id="eq-atrasos" placeholder="0" min="0"></div>
+            <div class="field"><label>Atestados</label><input type="number" id="eq-atestados" placeholder="0" min="0"></div>
+            <div class="field"><label>Extras</label><input type="number" id="eq-extras" placeholder="0" min="0"></div>
+          </div>
+          <div class="field"><label>Ocorrências</label>
+            <div class="tag-row" id="tags-equipe">
+              <span class="tag" onclick="togTag(this,'on-d')">Postura inadequada</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Conflito</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Baixa produtividade</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Escala insuficiente</span>
+              <span class="tag" onclick="togTag(this,'on-s')">Nenhuma ocorrência</span>
+            </div>
+          </div>
+          <div class="field" style="margin-top:.625rem"><label>Observações de equipe</label><textarea rows="2" id="eq-obs" placeholder="Destaques, problemas..."></textarea></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">Freelancers utilizados no dia</div>
+          <div style="background:var(--surface2);border-radius:var(--radius);padding:.75rem;margin-bottom:.75rem;display:flex;align-items:center;gap:10px">
+            <input type="checkbox" id="sem-freelancer" style="width:18px;height:18px;cursor:pointer;flex-shrink:0" onchange="toggleSemFreelancer(this.checked)">
+            <label for="sem-freelancer" style="font-size:13px;color:var(--text2);cursor:pointer;margin:0">Nenhum freelancer utilizado hoje</label>
+          </div>
+          <div id="free-bloco">
+            <div id="usos-dia-lista" style="margin-bottom:.75rem"></div>
+            <div style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:.5rem">Adicionar freelancer</div>
+            <div class="search-wrap">
+              <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+              <input type="text" id="eq-search" placeholder="Buscar pelo nome no banco..." oninput="buscarFree(this.value)">
+            </div>
+            <div id="eq-resultados"></div>
+            <div id="eq-uso-form" style="display:none">
+              <div class="divider"></div>
+              <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.5rem">Detalhes — <span id="eq-nome-sel" style="color:var(--text)"></span></div>
+              <div class="row r2">
+                <div class="field"><label>Entrada</label><input type="time" id="eq-entrada"></div>
+                <div class="field"><label>Saída</label><input type="time" id="eq-saida"></div>
+              </div>
+              <div class="field" style="margin-bottom:.5rem"><label>Motivo <span style="color:var(--danger)">*</span></label>
+                <div class="tag-row" id="eq-motivo-tags">
+                  <span class="tag" onclick="selMotivoEq(this,'Reforço de equipe')">Reforço de equipe</span>
+                  <span class="tag" onclick="selMotivoEq(this,'Reposição — falta')">Reposição — falta</span>
+                  <span class="tag" onclick="selMotivoEq(this,'Reposição — atestado')">Reposição — atestado</span>
+                  <span class="tag" onclick="selMotivoEq(this,'Treinamento')">Treinamento</span>
+                  <span class="tag" onclick="selMotivoEq(this,'Evento especial')">Evento especial</span>
+                  <span class="tag" onclick="selMotivoEq(this,'Outro')">Outro</span>
+                </div>
+                <div id="motivo-erro" style="font-size:11px;color:var(--danger);margin-top:4px;display:none">Selecione o motivo antes de continuar</div>
+              </div>
+              <div class="row r2">
+                <div class="field"><label>Valor pago (R$)</label><input type="number" id="eq-valor" placeholder="0,00" min="0"></div>
+                <div class="field"><label>Registrado por</label><input type="text" id="eq-reg-por" placeholder="Nome"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:.625rem">
+                <button class="btn btn-sm" onclick="cancelarUsForm()">Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="adicionarUso()">✓ Confirmar freelancer</button>
+              </div>
+            </div>
+            <div id="eq-novo-cad" style="display:none">
+              <div class="divider"></div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:.5rem">Não encontrado — cadastrar agora</div>
+              <div class="row r2">
+                <div class="field"><label>Nome completo</label><input type="text" id="nf-nome" placeholder="Nome completo"></div>
+                <div class="field"><label>Telefone</label><input type="text" id="nf-tel" placeholder="(11) 99999-9999"></div>
+              </div>
+              <div class="row r2">
+                <div class="field"><label>Chave Pix</label><input type="text" id="nf-pix" placeholder="Chave Pix"></div>
+                <div class="field"><label>Observações</label><input type="text" id="nf-obs" placeholder="Função, experiência..."></div>
+              </div>
+              <button class="btn btn-primary btn-sm" style="margin-top:.5rem" onclick="cadastrarESel()">Cadastrar e selecionar</button>
+            </div>
+            <div class="total-row" style="margin-top:.75rem">
+              <span class="total-label">Custo total freelancers no dia</span>
+              <span class="total-value" id="total-free-dia">R$ 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav"><button class="btn btn-sm" onclick="goStep(2)">← Voltar</button><button class="btn btn-primary" style="flex:1" id="btn-proximo-op" onclick="avancarParaOperacao()">Próximo: Operação →</button></div>
+      </div>
+
+      <!-- Etapa 4: Operação + Manutenção + Limpeza -->
+      <div id="step-4" style="display:none">
+        <div class="section">
+          <div class="sec-title">Operação e padrão</div>
+          <div class="field"><label>Ocorrências</label>
+            <div class="tag-row" id="tags-oper">
+              <span class="tag" onclick="togTag(this,'on-d')">Erro de montagem</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Padrão fora</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Lentidão</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Falha de processo</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Reclamação de cliente</span>
+              <span class="tag" onclick="togTag(this,'on-s')">Sem ocorrências</span>
+            </div>
+          </div>
+          <div class="row r2" style="margin-top:.75rem">
+            <div class="field"><label>Tempo de preparo</label><select id="op-tempo"><option value="">—</option><option>Dentro do esperado</option><option>Parcialmente</option><option>Fora do esperado</option></select></div>
+            <div class="field"><label>Qtd. reclamações</label><input type="number" id="op-reclamacoes" placeholder="0" min="0"></div>
+          </div>
+          <div class="field" style="margin-top:.375rem"><label>Descrição</label><textarea rows="2" id="op-descricao" placeholder="Descreva ocorrências..."></textarea></div>
+        </div>
+        <div class="section">
+          <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Manutenção</span>
+            <span id="manut-pendentes-count" style="font-size:11px;background:var(--warning-bg);color:var(--warning);padding:2px 8px;border-radius:20px;font-weight:600;display:none"></span>
+          </div>
+
+          <!-- Pendências anteriores -->
+          <div id="manut-pendentes-lista" style="margin-bottom:.75rem"></div>
+
+          <!-- Novo item -->
+          <div style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:.5rem;margin-top:.25rem">Registrar novo item</div>
+          <div id="manut-lista-form">
+            <div class="cblock">
+              <div class="row r2"><div class="field"><label>Item</label><input type="text" class="manut-item" placeholder="Ex: geladeira..."></div><div class="field"><label>Problema</label><input type="text" class="manut-prob" placeholder="Descreva..."></div></div>
+              <div class="row r3"><div class="field"><label>Prioridade</label><select class="manut-prior"><option value="">—</option><option>Urgente</option><option>Média</option><option>Baixa</option></select></div><div class="field"><label>Status</label><select class="manut-status"><option value="">—</option><option>Resolvido</option><option>Em andamento</option><option>Pendente</option><option>Chamado aberto</option></select></div><div class="field"><label>Responsável</label><input type="text" class="manut-resp" placeholder="Nome ou empresa"></div></div>
+            </div>
+          </div>
+          <button class="btn btn-sm" style="margin-top:.375rem;width:100%;border-style:dashed" onclick="addManutForm()">+ Adicionar item</button>
+        </div>
+        <div class="section">
+          <div class="sec-title">Limpeza e organização</div>
+          <div class="field"><label>Status</label>
+            <div class="tag-row" id="tags-limpeza">
+              <span class="tag" onclick="togTag(this,'on-s')">Dentro do padrão</span>
+              <span class="tag" onclick="togTag(this,'on-w')">Pontos de atenção</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Fora do padrão</span>
+              <span class="tag" onclick="togTag(this,'on-d')">Risco sanitário</span>
+            </div>
+          </div>
+          <div class="field" style="margin-top:.625rem"><label>Observações</label><textarea rows="2" id="limpeza-obs" placeholder="Descreva falhas..."></textarea></div>
+        </div>
+        <div class="step-nav"><button class="btn btn-sm" onclick="goStep(3)">← Voltar</button><button class="btn btn-primary" style="flex:1" onclick="goStep(5)">Próximo: Pendências →</button></div>
+      </div>
+
+      <!-- Etapa 5: Faltas produto + Pendências + Envio -->
+      <div id="step-5" style="display:none">
+        <div class="section">
+          <div class="sec-title">Faltas de produto</div>
+          <div class="field"><label>Produtos em falta hoje</label><textarea id="r-faltas" rows="2" placeholder="Liste os produtos ou escreva 'nenhum'"></textarea></div>
+          <div class="row r2" style="margin-top:.5rem">
+            <div class="field"><label>Impacto na venda</label><select id="r-impacto"><option value="">—</option><option>Nenhum</option><option>Baixo</option><option>Médio</option><option>Alto</option><option>Crítico</option></select></div>
+            <div class="field"><label>Compra emergencial?</label><select id="r-compra-emerg"><option value="">—</option><option>Não</option><option>Sim</option><option>Necessária, não realizada</option></select></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="sec-title">Pendências e observações</div>
+          <div class="field"><label>Pendências para o próximo dia</label><textarea id="r-pendencias" rows="2" placeholder="Liste as pendências..."></textarea></div>
+          <div class="field" style="margin-top:.625rem"><label>Observações gerais / fatos relevantes</label><textarea id="r-obs" rows="2" placeholder="Qualquer fato fora do normal..."></textarea></div>
+        </div>
+        <div id="relatorio-ok" style="display:none"></div>
+        <div class="step-nav">
+          <button class="btn btn-sm" onclick="goStep(4)">← Voltar</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-salvar" onclick="salvarRelatorio()">Salvar relatório</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== FREELANCERS ========== -->
+    <div class="screen" id="screen-freelancers">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">Freelancers</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Banco central — todas as unidades</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="toggleNovoFree()">+ Novo</button>
+      </div>
+      <div class="section" id="novo-free-form" style="display:none">
+        <div class="sec-title">Novo freelancer</div>
+        <div class="row r2">
+          <div class="field"><label>Nome completo</label><input type="text" id="bn-nome" placeholder="Nome completo"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="bn-tel" placeholder="(11) 99999-9999"></div>
+        </div>
+        <div class="row r2">
+          <div class="field"><label>Chave Pix</label><input type="text" id="bn-pix" placeholder="CPF, e-mail, celular ou chave aleatória"></div>
+          <div class="field"><label>Status</label><select id="bn-status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
+        </div>
+        <div class="field" style="margin-bottom:.75rem"><label>Observações</label><input type="text" id="bn-obs" placeholder="Função, experiência, restrições..."></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-sm" onclick="toggleNovoFree()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="salvarFree()">Salvar</button>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        <input type="text" id="banco-search" placeholder="Buscar por nome..." oninput="carregarFreelancers()">
+      </div>
+      <div id="banco-lista"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- ========== DASHBOARD ========== -->
+    <div class="screen" id="screen-dashboard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">Dashboard</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Visão consolidada — todas as unidades</div>
+        </div>
+        <select id="dash-periodo" onchange="carregarDashboard()" style="width:auto;font-size:12px;padding:5px 10px">
+          <option value="7">Últimos 7 dias</option>
+          <option value="14">Últimos 14 dias</option>
+          <option value="30">Últimos 30 dias</option>
+        </select>
+      </div>
+      <div id="dash-content"><div class="loading">Carregando dashboard...</div></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+var USER = null;
+var USER_PROFILE = null;
+var UNIDADES = [];
+var usosDia = [];
+var selFree = null;
+var selMotivoEq = null;
+var currentStep = 0;
+var nivelSel = null;
+var chartInst = {};
+
+// ============================================================
+// AUTH
+// ============================================================
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await onLogin(session.user);
+}
+
+async function login() {
+  const email = document.getElementById('auth-email').value;
+  const pwd = document.getElementById('auth-password').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pwd });
+  if (error) {
+    document.getElementById('auth-error').textContent = 'E-mail ou senha incorretos.';
+    document.getElementById('auth-error').style.display = 'block';
+    return;
+  }
+  await onLogin(data.user);
+}
+
+async function onLogin(user) {
+  USER = user;
+  const { data: profile } = await sb.from('usuarios').select('*, unidades(nome)').eq('id', user.id).single();
+  USER_PROFILE = profile;
+  document.getElementById('auth-wrap').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('user-info').textContent = (profile?.nome || user.email) + ' · ' + (profile?.cargo || '');
+  if (profile?.cargo !== 'diretoria') {
+    document.getElementById('tab-dashboard').style.display = 'none';
+  }
+  await carregarUnidades();
+  initRelatorio();
+  carregarFreelancers();
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+function toggleForgot() {
+  const l = document.getElementById('auth-login');
+  const f = document.getElementById('auth-forgot');
+  l.style.display = l.style.display === 'none' ? 'block' : 'none';
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function resetPassword() {
+  const email = document.getElementById('auth-forgot-email').value;
+  await sb.auth.resetPasswordForEmail(email);
+  toast('Link enviado para ' + email);
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function goTab(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'freelancers') carregarFreelancers();
+  if (name === 'dashboard') carregarDashboard();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function fmt(v) { return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function ini(n) { const p = n.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : n.slice(0,2).toUpperCase(); }
+function togTag(el, cls) {
+  const all = ['on-d','on-w','on-i','on-s'];
+  if (all.some(c => el.classList.contains(c))) { all.forEach(c => el.classList.remove(c)); }
+  else { all.forEach(c => el.classList.remove(c)); el.classList.add(cls); }
+}
+function getActiveTags(containerId) {
+  return [...document.querySelectorAll('#' + containerId + ' .tag.on-d, #' + containerId + ' .tag.on-w, #' + containerId + ' .tag.on-i, #' + containerId + ' .tag.on-s')].map(t => t.textContent);
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function destroyChart(id) { if (chartInst[id]) { chartInst[id].destroy(); delete chartInst[id]; } }
+
+// ============================================================
+// UNIDADES
+// ============================================================
+async function carregarUnidades() {
+  const { data } = await sb.from('unidades').select('*').eq('ativo', true).order('nome');
+  UNIDADES = data || [];
+  const sel = document.getElementById('r-unidade');
+  sel.innerHTML = '<option value="">Selecionar...</option>';
+  UNIDADES.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id;
+    opt.textContent = u.nome;
+    sel.appendChild(opt);
+  });
+  if (USER_PROFILE?.unidade_id) sel.value = USER_PROFILE.unidade_id;
+}
+
+// ============================================================
+// RELATÓRIO DIÁRIO
+// ============================================================
+function initRelatorio() {
+  document.getElementById('r-data').valueAsDate = new Date();
+  if (USER_PROFILE?.nome) document.getElementById('r-nome').value = USER_PROFILE.nome;
+  if (USER_PROFILE?.cargo) document.getElementById('r-cargo').value = USER_PROFILE.cargo;
+
+  const canaisFat = ['Salão','Retirada / Balcão','iFood','99Food','Delivery próprio'];
+  const keys = ['salao','retirada','ifood','food99','delivery'];
+  let html = '';
+  canaisFat.forEach((c, i) => {
+    html += `<div class="cblock"><div class="cblock-title">${c}</div>
+      <div class="row r3">
+        <div class="field"><label>Faturamento (R$)</label><input type="number" class="fat-input" data-key="${keys[i]}" placeholder="0" min="0" oninput="calcFat()"></div>
+        <div class="field"><label>Nº pedidos</label><input type="number" class="ped-input" data-key="${keys[i]}" placeholder="0" min="0"></div>
+        <div class="field"><label>Ticket médio (R$)</label><input type="number" class="tm-input" data-key="${keys[i]}" placeholder="—" min="0"></div>
+      </div></div>`;
+  });
+  document.getElementById('fat-canais-form').innerHTML = html;
+
+  const canaisCanc = ['Salão','Retirada / Balcão','iFood','99Food','Delivery próprio'];
+  const keysCanc = ['salao','retirada','ifood','food99','delivery'];
+  let hc = '';
+  canaisCanc.forEach((c, i) => {
+    hc += `<div class="row r2" style="margin-bottom:.5rem">
+      <div class="field"><label>${c} — Qtd.</label><input type="number" class="canc-q" data-key="${keysCanc[i]}" placeholder="0" min="0" oninput="calcCanc()"></div>
+      <div class="field"><label>${c} — Valor (R$)</label><input type="number" class="canc-v" data-key="${keysCanc[i]}" placeholder="0,00" min="0" oninput="calcCanc()"></div>
+    </div>`;
+  });
+  document.getElementById('canc-form').innerHTML = hc;
+
+  const canaisCort = ['Salão','Retirada / Balcão','iFood','99Food','Delivery próprio'];
+  const keysCort = ['salao','retirada','ifood','food99','delivery'];
+  let hco = '';
+  canaisCort.forEach((c, i) => {
+    hco += `<div class="row r2" style="margin-bottom:.5rem">
+      <div class="field"><label>${c} — Qtd.</label><input type="number" class="cort-q" data-key="${keysCort[i]}" placeholder="0" min="0" oninput="calcCort()"></div>
+      <div class="field"><label>${c} — Valor (R$)</label><input type="number" class="cort-v" data-key="${keysCort[i]}" placeholder="0,00" min="0" oninput="calcCort()"></div>
+    </div>`;
+  });
+  document.getElementById('cort-form').innerHTML = hco;
+}
+
+function calcFat() {
+  let t = 0;
+  document.querySelectorAll('.fat-input').forEach(e => t += parseFloat(e.value || 0));
+  document.getElementById('total-fat').textContent = fmt(t);
+}
+function calcCanc() {
+  let t = 0;
+  document.querySelectorAll('.canc-v').forEach(e => t += parseFloat(e.value || 0));
+  document.getElementById('total-canc').textContent = fmt(t);
+}
+function calcCort() {
+  let t = 0;
+  document.querySelectorAll('.cort-v').forEach(e => t += parseFloat(e.value || 0));
+  document.getElementById('total-cort').textContent = fmt(t);
+}
+
+var currentStep = 0;
+function goStep(n) {
+  document.getElementById('step-' + currentStep).style.display = 'none';
+  document.getElementById('dot-' + currentStep).classList.remove('active');
+  currentStep = n;
+  document.getElementById('step-' + n).style.display = 'block';
+  document.getElementById('dot-' + n).classList.add('active');
+  if (n === 3) renderUsosDia();
+  window.scrollTo(0, 0);
+}
+function selNivel(el, t) {
+  document.querySelectorAll('.nv').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  nivelSel = { bom: 'Bom', atencao: 'Atenção', critico: 'Crítico' }[t];
+}
+
+// Freelancers no relatório
+async function buscarFree(q) {
+  if (!q || q.length < 2) { document.getElementById('eq-resultados').innerHTML = ''; document.getElementById('eq-novo-cad').style.display = 'none'; return; }
+  const { data } = await sb.from('freelancers').select('*').ilike('nome_completo', `%${q}%`).eq('status', 'Ativo').limit(5);
+  const res = document.getElementById('eq-resultados');
+  document.getElementById('eq-uso-form').style.display = 'none';
+  if (data && data.length) {
+    document.getElementById('eq-novo-cad').style.display = 'none';
+    res.innerHTML = data.map(f => `<div class="fc-card" onclick="selecionarFree('${f.id}','${f.nome_completo.replace(/'/g,"\\'")}','${f.chave_pix||''}','${f.telefone||''}')">
+      <div class="flex-row"><div class="av">${ini(f.nome_completo)}</div>
+      <div><div style="font-size:13px;font-weight:500">${f.nome_completo}</div>
+      <div style="font-size:11px;color:var(--text2)">${f.telefone||''} · Pix: ${f.chave_pix||''}</div>
+      ${f.observacoes ? `<div style="font-size:11px;color:var(--text3)">${f.observacoes}</div>` : ''}
+      </div></div></div>`).join('');
+  } else {
+    res.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:.375rem 0">Nenhum resultado para "${q}"</div>`;
+    document.getElementById('eq-novo-cad').style.display = 'block';
+  }
+}
+
+function selecionarFree(id, nome, pix, tel) {
+  selFree = { id, nome, pix, tel };
+  selMotivoEq = null;
+  document.getElementById('eq-resultados').innerHTML = '';
+  document.getElementById('eq-novo-cad').style.display = 'none';
+  document.getElementById('eq-search').value = '';
+  document.getElementById('eq-nome-sel').textContent = nome;
+  document.querySelectorAll('#eq-motivo-tags .tag').forEach(t => { ['on-d','on-w','on-i','on-s'].forEach(c => t.classList.remove(c)); });
+  document.getElementById('eq-entrada').value = '';
+  document.getElementById('eq-saida').value = '';
+  document.getElementById('eq-valor').value = '';
+  document.getElementById('eq-uso-form').style.display = 'block';
+}
+
+function selMotivoEqFn(el, m) {
+  document.querySelectorAll('#eq-motivo-tags .tag').forEach(t => { ['on-d','on-w','on-i','on-s'].forEach(c => t.classList.remove(c)); });
+  el.classList.add('on-i');
+  selMotivoEq = m;
+}
+// override inline onclick
+document.addEventListener('DOMContentLoaded', () => {});
+
+function cancelarUsForm() { selFree = null; selMotivoEq = null; document.getElementById('eq-uso-form').style.display = 'none'; document.getElementById('eq-resultados').innerHTML = ''; }
+
+function adicionarUso() {
+  if (!selFree) return;
+  if (!selMotivoEq) { toast('Selecione o motivo'); return; }
+  const uso = {
+    freelancer_id: selFree.id, nome: selFree.nome,
+    entrada: document.getElementById('eq-entrada').value,
+    saida: document.getElementById('eq-saida').value,
+    motivo: selMotivoEq,
+    valor: parseFloat(document.getElementById('eq-valor').value || 0),
+    reg: document.getElementById('eq-reg-por').value
+  };
+  usosDia.push(uso);
+  cancelarUsForm();
+  renderUsosDia();
+}
+
+function renderUsosDia() {
+  const el = document.getElementById('usos-dia-lista');
+  const tot = usosDia.reduce((a, u) => a + u.valor, 0);
+  document.getElementById('total-free-dia').textContent = fmt(tot);
+  if (!usosDia.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:.375rem 0">Nenhum freelancer adicionado</div>'; return; }
+  el.innerHTML = usosDia.map((u, i) => `<div style="background:var(--surface2);border-radius:var(--radius);padding:.625rem .875rem;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center">
+    <div><div style="font-size:13px;font-weight:500">${u.nome}</div>
+    <div style="font-size:11px;color:var(--text2)">${u.motivo}${u.entrada ? ' · ' + u.entrada + '–' + u.saida : ''}${u.valor ? ' · ' + fmt(u.valor) : ''}</div></div>
+    <button class="btn btn-sm btn-danger" onclick="usosDia.splice(${i},1);renderUsosDia()">×</button>
+  </div>`).join('');
+}
+
+async function cadastrarESel() {
+  const nome = document.getElementById('nf-nome').value.trim();
+  if (!nome) { toast('Informe o nome'); return; }
+  const { data, error } = await sb.from('freelancers').insert({ nome_completo: nome, telefone: document.getElementById('nf-tel').value, chave_pix: document.getElementById('nf-pix').value, observacoes: document.getElementById('nf-obs').value, cadastrado_por: USER.id }).select().single();
+  if (error) { toast('Erro ao cadastrar: ' + error.message); return; }
+  document.getElementById('eq-novo-cad').style.display = 'none';
+  selecionarFree(data.id, data.nome_completo, data.chave_pix, data.telefone);
+  toast('Freelancer cadastrado!');
+}
+
+function addManutForm() {
+  const d = document.createElement('div'); d.className = 'cblock';
+  d.innerHTML = `<div class="row r2"><div class="field"><label>Item</label><input type="text" class="manut-item" placeholder="Ex: geladeira..."></div><div class="field"><label>Problema</label><input type="text" class="manut-prob" placeholder="Descreva..."></div></div><div class="row r3"><div class="field"><label>Prioridade</label><select class="manut-prior"><option value="">—</option><option>Urgente</option><option>Média</option><option>Baixa</option></select></div><div class="field"><label>Status</label><select class="manut-status"><option value="">—</option><option>Resolvido</option><option>Em andamento</option><option>Pendente</option><option>Chamado aberto</option></select></div><div class="field"><label>Responsável</label><input type="text" class="manut-resp" placeholder="Nome ou empresa"></div></div>`;
+  document.getElementById('manut-lista-form').appendChild(d);
+}
+
+async function salvarRelatorio() {
+  const unidade_id = document.getElementById('r-unidade').value;
+  const data = document.getElementById('r-data').value;
+  if (!unidade_id) { toast('Selecione a unidade'); return; }
+  if (!data) { toast('Informe a data'); return; }
+
+  const btn = document.getElementById('btn-salvar');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const getFat = key => parseFloat(document.querySelector(`.fat-input[data-key="${key}"]`)?.value || 0);
+  const getCancQ = key => parseInt(document.querySelector(`.canc-q[data-key="${key}"]`)?.value || 0);
+  const getCancV = key => parseFloat(document.querySelector(`.canc-v[data-key="${key}"]`)?.value || 0);
+  const getCortQ = key => parseInt(document.querySelector(`.cort-q[data-key="${key}"]`)?.value || 0);
+  const getCortV = key => parseFloat(document.querySelector(`.cort-v[data-key="${key}"]`)?.value || 0);
+
+  const limpezaSel = document.querySelector('#tags-limpeza .tag.on-d, #tags-limpeza .tag.on-w, #tags-limpeza .tag.on-s');
+
+  const payload = {
+    unidade_id, data,
+    responsavel_id: USER.id,
+    responsavel_nome: document.getElementById('r-nome').value,
+    cargo: document.getElementById('r-cargo').value,
+    nivel_operacao: nivelSel,
+    fat_salao: getFat('salao'), fat_retirada: getFat('retirada'),
+    fat_ifood: getFat('ifood'), fat_99food: getFat('food99'), fat_delivery: getFat('delivery'),
+    canc_salao_qtd: getCancQ('salao'), canc_salao_val: getCancV('salao'),
+    canc_ifood_qtd: getCancQ('ifood'), canc_ifood_val: getCancV('ifood'),
+    canc_99food_qtd: getCancQ('food99'), canc_99food_val: getCancV('food99'),
+    canc_delivery_qtd: getCancQ('delivery'), canc_delivery_val: getCancV('delivery'),
+    canc_motivos: getActiveTags('tags-canc'), canc_obs: document.getElementById('canc-obs').value,
+    cort_salao_qtd: getCortQ('salao'), cort_salao_val: getCortV('salao'),
+    cort_ifood_qtd: getCortQ('ifood'), cort_ifood_val: getCortV('ifood'),
+    cort_delivery_qtd: getCortQ('delivery'), cort_delivery_val: getCortV('delivery'),
+    cort_motivos: getActiveTags('tags-cort'), cort_obs: document.getElementById('cort-obs').value,
+    eq_faltas: parseInt(document.getElementById('eq-faltas').value || 0),
+    eq_atrasos: parseInt(document.getElementById('eq-atrasos').value || 0),
+    eq_atestados: parseInt(document.getElementById('eq-atestados').value || 0),
+    eq_extras: parseInt(document.getElementById('eq-extras').value || 0),
+    eq_ocorrencias: getActiveTags('tags-equipe'), eq_obs: document.getElementById('eq-obs').value,
+    op_ocorrencias: getActiveTags('tags-oper'),
+    op_tempo_preparo: document.getElementById('op-tempo').value,
+    op_reclamacoes: parseInt(document.getElementById('op-reclamacoes').value || 0),
+    op_descricao: document.getElementById('op-descricao').value,
+    limpeza_status: limpezaSel?.textContent || null,
+    limpeza_obs: document.getElementById('limpeza-obs').value,
+    faltas_produto: document.getElementById('r-faltas').value,
+    faltas_impacto: document.getElementById('r-impacto').value,
+    faltas_compra_emerg: document.getElementById('r-compra-emerg').value,
+    pendencias: document.getElementById('r-pendencias').value,
+    obs_gerais: document.getElementById('r-obs').value
+  };
+
+  const { data: rel, error } = await sb.from('relatorios_diarios').upsert(payload, { onConflict: 'unidade_id,data' }).select().single();
+
+  if (error) { toast('Erro ao salvar: ' + error.message); btn.textContent = 'Salvar relatório'; btn.disabled = false; return; }
+
+  // Salvar manutenções
+  const manutItems = document.querySelectorAll('#manut-lista-form .cblock');
+  for (const bloco of manutItems) {
+    const item = bloco.querySelector('.manut-item')?.value;
+    if (!item) continue;
+    await sb.from('manutencoes').insert({
+      relatorio_id: rel.id, unidade_id, data,
+      item, problema: bloco.querySelector('.manut-prob')?.value,
+      prioridade: bloco.querySelector('.manut-prior')?.value,
+      status: bloco.querySelector('.manut-status')?.value,
+      responsavel: bloco.querySelector('.manut-resp')?.value
+    });
+  }
+
+  // Salvar usos de freelancer
+  for (const uso of usosDia) {
+    await sb.from('uso_freelancers').insert({
+      freelancer_id: uso.freelancer_id, relatorio_id: rel.id,
+      unidade_id, data,
+      horario_entrada: uso.entrada || null,
+      horario_saida: uso.saida || null,
+      motivo: uso.motivo, valor_pago: uso.valor,
+      registrado_por: USER.id, registrado_por_nome: uso.reg
+    });
+  }
+
+  const okEl = document.getElementById('relatorio-ok');
+  okEl.innerHTML = `<div class="confirm-ok"><div style="font-size:13px;font-weight:600;color:var(--success);margin-bottom:4px">Relatório salvo com sucesso</div><div style="font-size:12px;color:var(--success)">${data} · ${UNIDADES.find(u=>u.id===unidade_id)?.nome||''}</div></div>`;
+  okEl.style.display = 'block';
+  btn.textContent = 'Salvar relatório'; btn.disabled = false;
+  // Agradecimento
+  const okEl = document.getElementById('relatorio-ok');
+  okEl.innerHTML = `
+    <div class="confirm-ok" style="text-align:center;padding:1.5rem">
+      <div style="font-size:28px;margin-bottom:.5rem">🎉</div>
+      <div style="font-size:15px;font-weight:600;color:var(--success);margin-bottom:.375rem">Relatório enviado com sucesso!</div>
+      <div style="font-size:13px;color:var(--success);margin-bottom:.75rem">${data} · ${UNIDADES.find(u=>u.id===unidade_id)?.nome||''}</div>
+      <div style="font-size:12px;color:var(--text2)">Obrigado pelo preenchimento. Bom trabalho! 👊</div>
+    </div>`;
+  okEl.style.display = 'block';
+  btn.textContent = 'Salvar relatório'; btn.disabled = false;
+  toast('Relatório salvo com sucesso!');
+  usosDia = [];
+  // Reset checkbox freelancer
+  const cb = document.getElementById('sem-freelancer');
+  if (cb) { cb.checked = false; toggleSemFreelancer(false); }
+}
+
+// ============================================================
+// FREELANCERS — BANCO
+// ============================================================
+async function carregarFreelancers() {
+  const q = document.getElementById('banco-search')?.value || '';
+  let query = sb.from('freelancers').select('*').order('nome_completo');
+  if (q) query = query.ilike('nome_completo', `%${q}%`);
+  const { data } = await query;
+  const el = document.getElementById('banco-lista');
+  if (!data || !data.length) { el.innerHTML = '<div class="loading">Nenhum resultado</div>'; return; }
+  el.innerHTML = data.map(f => `<div class="fc-card">
+    <div class="flex-row"><div class="av">${ini(f.nome_completo)}</div>
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:500">${f.nome_completo}</span>
+        <span class="badge ${f.status === 'Ativo' ? 'bs' : 'bg'}">${f.status}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">${f.telefone||''} · Pix: ${f.chave_pix||''}</div>
+      ${f.observacoes ? `<div style="font-size:11px;color:var(--text3)">${f.observacoes}</div>` : ''}
+    </div></div>
+  </div>`).join('');
+}
+
+function toggleNovoFree() {
+  const f = document.getElementById('novo-free-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function salvarFree() {
+  const nome = document.getElementById('bn-nome').value.trim();
+  if (!nome) { toast('Informe o nome'); return; }
+  const { error } = await sb.from('freelancers').insert({
+    nome_completo: nome, telefone: document.getElementById('bn-tel').value,
+    chave_pix: document.getElementById('bn-pix').value,
+    status: document.getElementById('bn-status').value,
+    observacoes: document.getElementById('bn-obs').value,
+    cadastrado_por: USER.id
+  });
+  if (error) { toast('Erro: ' + error.message); return; }
+  toggleNovoFree();
+  toast('Freelancer cadastrado!');
+  carregarFreelancers();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function carregarDashboard() {
+  const dias = parseInt(document.getElementById('dash-periodo')?.value || 7);
+  const desde = new Date(); desde.setDate(desde.getDate() - dias);
+  const dataStr = desde.toISOString().split('T')[0];
+
+  const { data: relatorios } = await sb.from('vw_resumo_diario').select('*').gte('data', dataStr).order('data', { ascending: false });
+  const { data: usos } = await sb.from('vw_custo_freelancers').select('*').gte('data', dataStr);
+  const { data: manut } = await sb.from('manutencoes').select('*, unidades(nome)').gte('data', dataStr).neq('status', 'Resolvido');
+
+  renderDashboard(relatorios || [], usos || [], manut || []);
+}
+
+function renderDashboard(relatorios, usos, manut) {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const tGrid = c => dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const tTick = dark ? '#9c9a92' : '#73726c';
+
+  const totFat = relatorios.reduce((a, r) => a + (r.fat_total || 0), 0);
+  const totCanc = relatorios.reduce((a, r) => a + (r.canc_total_val || 0), 0);
+  const totCort = relatorios.reduce((a, r) => a + (r.cort_total_val || 0), 0);
+  const totFree = usos.reduce((a, u) => a + (u.valor_pago || 0), 0);
+  const totReclam = relatorios.reduce((a, r) => a + (r.op_reclamacoes || 0), 0);
+  const criticos = relatorios.filter(r => r.nivel_operacao === 'Crítico').length;
+  const urgentes = manut.filter(m => m.prioridade === 'Urgente').length;
+
+  const unidadesFat = {};
+  relatorios.forEach(r => { unidadesFat[r.unidade] = (unidadesFat[r.unidade] || 0) + (r.fat_total || 0); });
+  const unidadesSorted = Object.entries(unidadesFat).sort((a, b) => b[1] - a[1]);
+  const maxFat = unidadesSorted[0]?.[1] || 1;
+
+  const alertas = [];
+  relatorios.filter(r => r.nivel_operacao === 'Crítico').forEach(r => alertas.push({ tipo: 'd', msg: 'Operação crítica', un: r.unidade }));
+  manut.filter(m => m.prioridade === 'Urgente').forEach(m => alertas.push({ tipo: 'd', msg: 'Manutenção urgente: ' + m.item, un: m.unidades?.nome || '' }));
+  relatorios.filter(r => r.op_reclamacoes >= 3).forEach(r => alertas.push({ tipo: 'w', msg: r.op_reclamacoes + ' reclamações', un: r.unidade }));
+  relatorios.filter(r => r.nivel_operacao === 'Atenção').forEach(r => alertas.push({ tipo: 'w', msg: 'Operação em atenção', un: r.unidade }));
+
+  const unLabels = unidadesSorted.map(([n]) => n.replace('Malibu Park — ', 'MP ').replace('Califa Comércio de Alimentos', 'Califa'));
+  const unVals = unidadesSorted.map(([, v]) => v);
+
+  const freeUnid = {};
+  usos.forEach(u => { freeUnid[u.unidade] = (freeUnid[u.unidade] || 0) + (u.valor_pago || 0); });
+  const freeLabels = Object.keys(freeUnid).map(n => n.replace('Malibu Park — ', 'MP ').replace('Califa Comércio de Alimentos', 'Califa'));
+  const freeVals = Object.values(freeUnid);
+
+  document.getElementById('dash-content').innerHTML = `
+    <div class="mc-grid">
+      <div class="mc"><div class="mc-label">Faturamento total</div><div class="mc-value">${fmt(totFat)}</div></div>
+      <div class="mc ${totCanc > 1000 ? 'warn' : ''}"><div class="mc-label">Cancelamentos</div><div class="mc-value">${fmt(totCanc)}</div></div>
+      <div class="mc ${criticos > 0 ? 'alert' : ''}"><div class="mc-label">Relatórios críticos</div><div class="mc-value">${criticos}</div></div>
+      <div class="mc ${urgentes > 0 ? 'alert' : ''}"><div class="mc-label">Manutenções urgentes</div><div class="mc-value">${urgentes}</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;margin-bottom:1rem">
+      <div class="section">
+        <div class="sec-title">Faturamento por unidade</div>
+        <div style="position:relative;width:100%;height:280px"><canvas id="chart-fat-un" role="img" aria-label="Faturamento por unidade">Faturamento por unidade.</canvas></div>
+      </div>
+      <div class="section">
+        <div class="sec-title">Alertas ativos (${alertas.length})</div>
+        ${alertas.length ? alertas.slice(0,8).map(a => `<div class="alert-item"><div class="alert-dot dot-${a.tipo}"></div><div><div style="font-size:13px">${a.msg}</div><div style="font-size:11px;color:var(--text2)">${a.un?.replace('Malibu Park — ','MP ').replace('Califa Comércio de Alimentos','Califa')||''}</div></div></div>`).join('') : '<div style="font-size:13px;color:var(--text3);padding:.5rem 0">Nenhum alerta ativo</div>'}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;margin-bottom:1rem">
+      <div class="section">
+        <div class="sec-title">Custo freelancers por unidade</div>
+        <div style="position:relative;width:100%;height:220px"><canvas id="chart-free-un" role="img" aria-label="Custo freelancer por unidade">Custo freelancer.</canvas></div>
+      </div>
+      <div class="section">
+        <div class="sec-title">Cancelamentos vs cortesias</div>
+        <div style="position:relative;width:100%;height:220px"><canvas id="chart-canc-cort" role="img" aria-label="Cancelamentos e cortesias">Cancelamentos vs cortesias.</canvas></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">Manutenções pendentes (${manut.length})</div>
+      ${manut.length ? manut.sort((a,b) => ({Urgente:0,Média:1,Baixa:2})[a.prioridade]-({Urgente:0,Média:1,Baixa:2})[b.prioridade]).map(m => `
+        <div class="alert-item">
+          <div class="alert-dot dot-${m.prioridade === 'Urgente' ? 'd' : m.prioridade === 'Média' ? 'w' : 's'}"></div>
+          <div><div style="font-size:13px;font-weight:500">${m.item} — ${m.problema || ''}</div>
+          <div style="font-size:11px;color:var(--text2)">${m.unidades?.nome?.replace('Malibu Park — ','MP ')||''} · <span class="badge ${m.prioridade === 'Urgente' ? 'bd' : m.prioridade === 'Média' ? 'bw' : 'bg'}">${m.prioridade}</span> · ${m.status}</div></div>
+        </div>`).join('') : '<div style="font-size:13px;color:var(--text3)">Nenhuma manutenção pendente</div>'}
+    </div>
+  `;
+
+  destroyChart('chart-fat-un');
+  chartInst['chart-fat-un'] = new Chart(document.getElementById('chart-fat-un'), {
+    type: 'bar',
+    data: { labels: unLabels, datasets: [{ label: 'Faturamento', data: unVals, backgroundColor: '#185FA5', borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: v => 'R$ ' + Math.round(v/1000) + 'k', color: tTick }, grid: { color: tGrid() } }, y: { ticks: { color: tTick }, grid: { display: false } } } }
+  });
+
+  destroyChart('chart-free-un');
+  if (freeLabels.length) {
+    chartInst['chart-free-un'] = new Chart(document.getElementById('chart-free-un'), {
+      type: 'bar',
+      data: { labels: freeLabels, datasets: [{ data: freeVals, backgroundColor: '#534AB7', borderRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: tTick, maxRotation: 30 }, grid: { display: false } }, y: { ticks: { callback: v => 'R$ ' + v, color: tTick }, grid: { color: tGrid() } } } }
+    });
+  }
+
+  const cancByUnid = {};
+  const cortByUnid = {};
+  relatorios.forEach(r => {
+    const un = r.unidade?.replace('Malibu Park — ','MP ').replace('Califa Comércio de Alimentos','Califa') || '';
+    cancByUnid[un] = (cancByUnid[un] || 0) + (r.canc_total_val || 0);
+    cortByUnid[un] = (cortByUnid[un] || 0) + (r.cort_total_val || 0);
+  });
+  const ccLabels = Object.keys(cancByUnid);
+  destroyChart('chart-canc-cort');
+  chartInst['chart-canc-cort'] = new Chart(document.getElementById('chart-canc-cort'), {
+    type: 'bar',
+    data: { labels: ccLabels, datasets: [
+      { label: 'Cancelamentos', data: ccLabels.map(l => cancByUnid[l] || 0), backgroundColor: '#E24B4A', borderRadius: 3 },
+      { label: 'Cortesias', data: ccLabels.map(l => cortByUnid[l] || 0), backgroundColor: '#EF9F27', borderRadius: 3 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: tTick, maxRotation: 30 }, grid: { display: false } }, y: { ticks: { callback: v => 'R$ ' + v, color: tTick }, grid: { color: tGrid() } } } }
+  });
+}
+
+// ============================================================
+// FIX: selMotivoEq via onclick inline
+// ============================================================
+window.selMotivoEq = function(el, m) {
+  document.querySelectorAll('#eq-motivo-tags .tag').forEach(t => { ['on-d','on-w','on-i','on-s'].forEach(c => t.classList.remove(c)); });
+  el.classList.add('on-i');
+  selMotivoEq = m;
+};
+
+
+// ================================================================
+// FREELANCERS — lógica sem freelancer + avanço controlado
+// ================================================================
+function toggleSemFreelancer(checked) {
+  const bloco = document.getElementById('free-bloco');
+  if (bloco) bloco.style.display = checked ? 'none' : 'block';
+  // Se marcou "sem freelancer", limpa lista e habilita avanço
+  if (checked) { usosDia = []; renderUsosDia(); }
+}
+
+function avancarParaOperacao() {
+  const semFree = document.getElementById('sem-freelancer');
+  if (!semFree.checked && usosDia.length === 0) {
+    // Tem form de uso aberto?
+    const formAberto = document.getElementById('eq-uso-form').style.display !== 'none';
+    if (formAberto) {
+      toast('Confirme ou cancele o freelancer antes de avançar');
+      return;
+    }
+    // Permite avançar sem freelancer (apenas alerta)
+    if (!confirm('Nenhum freelancer adicionado e "Nenhum freelancer" não foi marcado.\nDeseja continuar mesmo assim?')) return;
+  }
+  goStep(4);
+  carregarManutPendentes();
+}
+
+// ================================================================
+// MANUTENÇÃO — carregar pendências do banco
+// ================================================================
+async function carregarManutPendentes() {
+  const unidadeId = document.getElementById('r-unidade').value;
+  if (!unidadeId) return;
+
+  const { data } = await sb.from('manutencoes')
+    .select('*')
+    .eq('unidade_id', unidadeId)
+    .neq('status', 'Resolvido')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  const lista = document.getElementById('manut-pendentes-lista');
+  const count = document.getElementById('manut-pendentes-count');
+  if (!data || !data.length) {
+    lista.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:.375rem 0">Nenhuma manutenção pendente anterior.</div>';
+    count.style.display = 'none';
+    return;
+  }
+
+  count.textContent = data.length + ' pendente' + (data.length > 1 ? 's' : '');
+  count.style.display = 'inline';
+
+  const corPrior = { 'Urgente': 'var(--danger)', 'Média': 'var(--warning)', 'Baixa': 'var(--text3)' };
+  lista.innerHTML = data.map(m => `
+    <div class="cblock" style="margin-bottom:.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${m.item || '—'}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${m.problema || ''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">
+            Aberto: ${m.data || m.created_at?.slice(0,10)} 
+            ${m.responsavel ? '· Resp: ' + m.responsavel : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <span style="font-size:11px;font-weight:600;color:${corPrior[m.prioridade]||'var(--text3)'}">${m.prioridade||'—'}</span>
+          <select onchange="atualizarStatusManut('${m.id}', this.value)" style="font-size:11px;padding:3px 6px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--surface);color:var(--text)">
+            <option ${m.status==='Pendente'?'selected':''}>Pendente</option>
+            <option ${m.status==='Em andamento'?'selected':''}>Em andamento</option>
+            <option ${m.status==='Chamado aberto'?'selected':''}>Chamado aberto</option>
+            <option ${m.status==='Resolvido'?'selected':''}>Resolvido</option>
+          </select>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function atualizarStatusManut(id, status) {
+  await sb.from('manutencoes').update({ status }).eq('id', id);
+  toast(status === 'Resolvido' ? '✓ Marcado como resolvido' : 'Status atualizado');
+  if (status === 'Resolvido') setTimeout(() => carregarManutPendentes(), 500);
+}
+
+// START
+init();
+</script>
+</body>
+</html>
